@@ -207,13 +207,12 @@ class NeighorhoodMapViewModel {
         this.selectorLabel = "Choose a month:";
         this.mainTitle = "StarTrek Con 2017";
         this.status = ko.observable();
+        this.panError = ko.observable();
         this.selectedMonth = ko.observable();
-        // this.selectedMonth = mnth => {
-        //     this.selectedMonth(mnth);
-        // };
         this.displayWithinMonth = function(){};
         this.filterByLocation = ko.computed(() => {
             this.status("");
+
             if (!this.selectedMonth()) {
                 this.displayWithinMonth(this.markers);
                 return this.locationsList();
@@ -224,9 +223,9 @@ class NeighorhoodMapViewModel {
                         if( this.markers[i].month===this.selectedMonth())
                             monthMarkers.push(this.markers[i]);
                     }
-                    if (monthMarkers.length !== 0)
+                    if (monthMarkers.length !== 0) {
                         this.displayWithinMonth(monthMarkers);
-                    else {
+                    } else {
                         this.status("There are no events in " + this.selectedMonth());
                         hideLocations();
                     }
@@ -238,6 +237,7 @@ class NeighorhoodMapViewModel {
         //displang  events for selected month
         this.displayWithinMonth = monthMarkers => {
             hideLocations();
+
             let bounds = new google.maps.LatLngBounds();
             for (let i = 0; i < monthMarkers.length; i++) {
                     monthMarkers[i].setVisible(true);
@@ -261,7 +261,7 @@ let infowindow;
 
 //google maps initialization
 initMap = () => {
-
+    nm.status("");
     map = new google.maps.Map(document.getElementById('map'), {
         center: {
             lat: 39.774769,
@@ -340,7 +340,7 @@ initMap = () => {
 }
 
 mapError = () => {
-  $("#map").append("<h1>There is problem with loading map</h1>");
+  nm.status("There is problem with loading map");
 }
 
 //function for clicking marker
@@ -353,14 +353,16 @@ markerClicked = (marker) => {
         infowindow.addListener('closeclick', function() {
             marker.setAnimation(null);
             infowindow.marker = null;
+            nm.status("");
         });
         let streetViewService = new google.maps.StreetViewService();
         let radius = 50;
-
+        let contentString = '<div class="iw-title">' + marker.title + '</div><div class="iw-address">' + marker.address + '</div><div class="iw-address">'+marker.duration+' days of adventure starting '+marker.day+' of '+marker.month+'</div><div id="pan"></div>';
         //geting street view
         function getStreetView(data, status) {
+
             if (status == google.maps.StreetViewStatus.OK) {
-               // $("#pan").append("<div id='pano'></div>");
+                nm.status("");
                 let nearStreetViewLocation = data.location.latLng;
                 let heading = google.maps.geometry.spherical.computeHeading(nearStreetViewLocation, marker.position);
                 let panoramaOptions = {
@@ -370,16 +372,15 @@ markerClicked = (marker) => {
                         pitch: 30
                     }
                 };
+
                 let panorama = new google.maps.StreetViewPanorama(document.getElementById('pan'), panoramaOptions);
-                console.log("pan");
             } else {
-                $("#pan").append("There is no street view");
+                nm.status("There is no streetView for this location");
             }
         }
 
         // geting link for wikipedia
         let wikiLinkContent = "";
-        let contentString = '<div class="iw-title">' + marker.title + '</div><div class="iw-address">' + marker.address + '</div><div class="iw-address">'+marker.duration+' days of adventure starting '+marker.day+' of '+marker.month+'</div><div id="pan"></div>';
 
         $.ajax({
             type: "get",
