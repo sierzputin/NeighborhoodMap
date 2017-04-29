@@ -342,8 +342,10 @@ initMap = () => {
 mapError = () => {
   $("#map").append("<h1>There is problem with loading map</h1>");
 }
+
 //function for clicking marker
 markerClicked = (marker) => {
+
     if (infowindow.marker != marker) {
         markerSetAnimation(marker, true);
         infowindow.setContent('');
@@ -354,12 +356,11 @@ markerClicked = (marker) => {
         });
         let streetViewService = new google.maps.StreetViewService();
         let radius = 50;
-        infowindow.setContent('<div class="iw-title">' + marker.title + '</div><div class="iw-address">' + marker.address + '</div><div class="iw-address">'+marker.duration+' days of adventure starting '+marker.day+' of '+marker.month+'</div><div id="pan"></div><div id="wik"></div>');
 
         //geting street view
         function getStreetView(data, status) {
             if (status == google.maps.StreetViewStatus.OK) {
-                $("#pan").append("<div id='pano'></div>");
+               // $("#pan").append("<div id='pano'></div>");
                 let nearStreetViewLocation = data.location.latLng;
                 let heading = google.maps.geometry.spherical.computeHeading(nearStreetViewLocation, marker.position);
                 let panoramaOptions = {
@@ -369,39 +370,48 @@ markerClicked = (marker) => {
                         pitch: 30
                     }
                 };
-                let panorama = new google.maps.StreetViewPanorama(document.getElementById('pano'), panoramaOptions);
+                let panorama = new google.maps.StreetViewPanorama(document.getElementById('pan'), panoramaOptions);
+                console.log("pan");
             } else {
                 $("#pan").append("There is no street view");
             }
-
-            // geting link for wikipedia
-			let wikiLink = "";
-            $.ajax({
-                type: "get",
-                url: 'https://en.wikipedia.org/w/api.php',
-                data: {
-                    action: 'query',
-                    list: 'search',
-                    srsearch: marker.title,
-                    format: 'json'
-                },
-                dataType: 'jsonp',
-                success: data => {
-                    if(data)
-                        $("#wik").append('<span class="wiki-title">Wiki: </span><span class="wiki-links"><a href="http://en.wikipedia.org/wiki/' + data.query.search[0].title + '">' + data.query.search[0].title + '</a></span>');
-                    else
-                        $("#wik").append('<span class="wiki-title">Wiki: </span><span class="wiki-links">No data available</span>');
-                },
-				error: () => {
-					$("#wik").append('<span class="wiki-title">There were problems with wikipedia request</span>');
-				},
-				timeout: 3000
-            });
         }
-        streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
-        infowindow.open(map, marker);
-		map.setCenter(marker.getPosition());
 
+        // geting link for wikipedia
+        let wikiLinkContent = "";
+        let contentString = '<div class="iw-title">' + marker.title + '</div><div class="iw-address">' + marker.address + '</div><div class="iw-address">'+marker.duration+' days of adventure starting '+marker.day+' of '+marker.month+'</div><div id="pan"></div>';
+
+        $.ajax({
+            type: "get",
+            url: 'https://en.wikipedia.org/w/api.php',
+            data: {
+                action: 'query',
+                list: 'search',
+                srsearch: marker.title,
+                format: 'json'
+            },
+            dataType: 'jsonp',
+            success: data => {
+                if(data)
+                    wikiLinkContent = '<p class="wiki-links">Wiki: <a href="http://en.wikipedia.org/wiki/' + data.query.search[0].title + '">' + data.query.search[0].title + '</a></p>';
+                else
+                    wikiLinkContent = '<p class="wiki-links">Wiki: no data available at this time</p>';
+                contentString += wikiLinkContent;
+                infowindow.setContent(contentString);
+                streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
+                infowindow.open(map, marker);
+                map.setCenter(marker.getPosition());
+            },
+            error: () => {
+                wikiLinkContent = '<p class="wiki-links">There were problems with wikipedia request</p>';
+                contentString += wikiLinkContent;
+                infowindow.setContent(contentString);
+                streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
+                infowindow.open(map, marker);
+                map.setCenter(marker.getPosition());
+            },
+            timeout: 3000
+        });
     }
 }
 
